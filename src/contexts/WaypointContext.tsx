@@ -132,28 +132,32 @@ export const WaypointProvider: React.FC<WaypointProviderProps> = ({ children }) 
         newWaypoint.connections = [prevWaypoint.index]
       }
     }
-    
-    setWaypoints(prev => [...prev, newWaypoint])
+      setWaypoints(prev => [...prev, newWaypoint])
     setSelectedWaypoint(newWaypoint.id)
     setIsAddingWaypoint(false)
-  }
+  };
+  
   const removeWaypoint = (id: string) => {
     // Get the waypoint to be removed
     const waypointToRemove = waypoints.find(wp => wp.id === id)
     if (!waypointToRemove) return
 
-    // Get remaining waypoints after removing the selected one
-    const filteredWaypoints = waypoints.filter(wp => wp.id !== id)
+    // Get the droneId of the waypoint to be removed
+    const droneId = waypointToRemove.droneId
+
+    // Separate waypoints by drone - we'll only update indices for the drone that had a waypoint removed
+    const waypointsForThisDrone = waypoints.filter(wp => wp.droneId === droneId && wp.id !== id)
+    const waypointsForOtherDrones = waypoints.filter(wp => wp.droneId !== droneId)
     
-    if (filteredWaypoints.length === 0) {
-      // If we removed the last waypoint, just clear everything
-      setWaypoints([])
+    if (waypointsForThisDrone.length === 0) {
+      // If we removed the last waypoint for this drone, just keep the other drones' waypoints
+      setWaypoints(waypointsForOtherDrones)
       setSelectedWaypoint(null)
       return
     }
 
-    // Rebuild the entire waypoint sequence with proper connections
-    const updatedWaypoints = filteredWaypoints
+    // Rebuild only the waypoint sequence for THIS DRONE with proper connections
+    const updatedDroneWaypoints = waypointsForThisDrone
       // First sort them by their current index to maintain sequence
       .sort((a, b) => a.index - b.index)
       // Then reassign indices and connections
@@ -171,18 +175,19 @@ export const WaypointProvider: React.FC<WaypointProviderProps> = ({ children }) 
         }
         
         // Connect to next waypoint (if not the last one)
-        if (idx < filteredWaypoints.length - 1) {
+        if (idx < waypointsForThisDrone.length - 1) {
           connections.push(idx + 2) // Next waypoint's new index
         }
-        
-        return {
+          return {
           ...wp,
           index: newIndex,
           connections
         }
       })
     
-    setWaypoints(updatedWaypoints)
+    // Combine updated waypoints for this drone with unchanged waypoints for other drones
+    setWaypoints([...waypointsForOtherDrones, ...updatedDroneWaypoints])
+    
     if (selectedWaypoint === id) {
       setSelectedWaypoint(null)
     }
