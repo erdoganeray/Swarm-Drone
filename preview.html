@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drone Trajectory Planner - Preview</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .container {
+            text-align: center;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            max-width: 600px;
+        }
+        
+        .logo {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .features {
+            margin: 30px 0;
+            text-align: left;
+        }
+        
+        .feature {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            border-left: 4px solid #4ecdc4;
+        }
+        
+        .status {
+            background: #ff6b6b;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        
+        .instructions {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        
+        .step {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+        }
+        
+        .code {
+            background: #1a1a1a;
+            color: #4ecdc4;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+        
+        .progress {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .progress-bar {
+            width: 75%;
+            height: 100%;
+            background: linear-gradient(90deg, #4ecdc4, #44a08d);
+            border-radius: 5px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .tech-stack {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .tech {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 15px;
+            border-radius: 20px;
+            margin: 5px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🚁</div>
+        <h1>Drone Trajectory Planner</h1>
+        <p>3D Web Tabanlı Drone Uçuş Yolu Planlama Uygulaması</p>
+        
+        <div class="progress">
+            <div class="progress-bar"></div>
+        </div>
+        
+        <div class="status">
+            ⚠️ Node.js Kurulumu Gerekiyor
+        </div>
+        
+        <div class="features">
+            <h3>🎯 Özellikler</h3>
+            <div class="feature">📍 3D Waypoint Yerleştirme</div>
+            <div class="feature">🎮 İnteraktif 3D Kontroller</div>
+            <div class="feature">📏 Grid Sistemi & Snap-to-Grid</div>
+            <div class="feature">🛣️ Trajectory Görselleştirme</div>
+            <div class="feature">💾 Import/Export İşlevselliği</div>
+            <div class="feature">🏗️ Modern React + Three.js Altyapısı</div>
+        </div>
+        
+        <div class="tech-stack">
+            <div class="tech">React 18</div>
+            <div class="tech">TypeScript</div>
+            <div class="tech">Three.js</div>
+            <div class="tech">React Three Fiber</div>
+            <div class="tech">Vite</div>
+        </div>
+        
+        <div class="instructions">
+            <h3>🚀 Hızlı Başlangıç</h3>
+            
+            <div class="step">
+                <strong>1. Node.js Kurulumu:</strong><br>
+                <a href="https://nodejs.org" target="_blank" style="color: #4ecdc4;">nodejs.org</a> 
+                adresinden LTS versiyonunu indirin ve kurun
+            </div>
+            
+            <div class="step">
+                <strong>2. Proje Kurulumu:</strong><br>
+                Terminal/PowerShell'de proje klasöründe:
+                <div class="code">npm install</div>
+            </div>
+            
+            <div class="step">
+                <strong>3. Uygulamayı Başlatın:</strong><br>
+                <div class="code">npm run dev</div>
+                Sonra tarayıcıda: <strong>http://localhost:3000</strong>
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px; font-size: 0.9em; opacity: 0.8;">
+            ✨ Proje hazır! Node.js kurulduktan sonra 3D drone trajectory planlama deneyimini yaşayın.
+        </div>
+    </div>
+    
+    <script>
+        // Simple animation
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.querySelector('.container');
+            container.style.transform = 'scale(0.9)';
+            container.style.opacity = '0';
+            
+            setTimeout(() => {
+                container.style.transition = 'all 0.5s ease';
+                container.style.transform = 'scale(1)';
+                container.style.opacity = '1';
+            }, 100);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+.curve-editor-ui .btn {
+  display: inline-block;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer !important;
+  font-weight: bold;
+  text-align: center;
+  transition: background-color 0.3s ease;
+  position: relative !important;
+  z-index: 30 !important;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  pointer-events: auto !important;
+}
+
+.curve-editor-ui .btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 7px rgba(0, 0, 0, 0.3);
+}
+
+.curve-editor-ui .btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.curve-editor-ui .btn-cancel {
+  background-color: #f44336;
+  color: white;
+}
+
+.curve-editor-ui .btn-confirm {
+  background-color: #4CAF50;
+  color: white;
+}
+
+/* Panel container - ensure it's fixed and doesn't inherit transforms */
+.curve-editor-ui-container {
+  position: fixed !important;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 9999;
+  transform: none !important;
+}
+
+/* Ensure panel is positioned at top-right corner with proper size */
+.curve-editor-ui-container .panel {
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+  width: 360px !important;
+  font-size: 16px !important;
+}
