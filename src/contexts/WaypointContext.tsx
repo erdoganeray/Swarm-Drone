@@ -1,9 +1,11 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react'
 import * as THREE from 'three'
+import { useDrones } from './DroneContext'
 
 export interface Waypoint {
   id: string
-  index: number  // Numerical ID used for connections (can be decimal for curve points)
+  droneId: string  // Added droneId to associate waypoints with specific drones
+  index: number    // Numerical ID used for connections (can be decimal for curve points)
   name: string
   position: THREE.Vector3
   type: 'takeoff' | 'waypoint' | 'hover' | 'landing'
@@ -33,7 +35,7 @@ interface WaypointContextType {
   showCurveControls: boolean
   
   // Actions
-  addWaypoint: (waypoint: Omit<Waypoint, 'id'>) => void
+  addWaypoint: (waypoint: Omit<Waypoint, 'id' | 'droneId'>) => void
   removeWaypoint: (id: string) => void
   updateWaypoint: (id: string, updates: Partial<Waypoint>) => void
   selectWaypoint: (id: string | null) => void
@@ -43,8 +45,13 @@ interface WaypointContextType {
   toggleSnapToGrid: () => void
   toggleCurveControls: () => void
   clearAllWaypoints: () => void
-  exportTrajectory: () => string
-  importTrajectory: (data: string) => void
+  clearDroneWaypoints: (droneId: string) => void
+  exportTrajectory: (droneId?: string) => string
+  importTrajectory: (data: string, droneId?: string) => void
+  
+  // Multi-drone functions
+  getWaypointsByDroneId: (droneId: string) => Waypoint[]
+  moveWaypointsToDrone: (waypointIds: string[], targetDroneId: string) => void
   
   // Curve editing functions
   startCurveEdit: (startId: string, endId: string) => void
@@ -68,6 +75,9 @@ export const WaypointProvider: React.FC<WaypointProviderProps> = ({ children }) 
   const [snapToGrid, setSnapToGrid] = useState(true)
   const [showCurveControls, setShowCurveControls] = useState(false)
   
+  // Get selected drone from DroneContext
+  const { selectedDroneId } = useDrones()
+  
   // State for curve editing
   const [curveEditMode, setCurveEditMode] = useState<CurveEditState>({
     active: false,
@@ -75,9 +85,20 @@ export const WaypointProvider: React.FC<WaypointProviderProps> = ({ children }) 
     endWaypointId: null,
     controlPoints: []
   })
-  const addWaypoint = (waypointData: Omit<Waypoint, 'id' | 'index' | 'connections'>) => {
+    // When selected drone changes, deselect any waypoint
+  useEffect(() => {
+    setSelectedWaypoint(null)
+  }, [selectedDroneId]);
+  
+  const addWaypoint = (waypointData: Omit<Waypoint, 'id' | 'droneId' | 'index' | 'connections'>) => {
+    // Only allow adding if a drone is selected
+    if (!selectedDroneId) return
+    
+    // Get only waypoints for the selected drone for index calculation
+    const droneWaypoints = waypoints.filter(wp => wp.droneId === selectedDroneId)
+    
     // Find the next available integer index
-    const usedIndices = waypoints.map(wp => Math.floor(wp.index))
+    const usedIndices = droneWaypoints.map(wp => Math.floor(wp.index))
     let newIndex = 1
     
     if (usedIndices.length > 0) {
@@ -89,13 +110,15 @@ export const WaypointProvider: React.FC<WaypointProviderProps> = ({ children }) 
     const newWaypoint: Waypoint = {
       ...waypointData,
       id: `waypoint-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      droneId: selectedDroneId,
       index: newIndex,
       connections: newIndex > 1 ? [newIndex - 1] : []
     }
-      // Find previous waypoint (closest integer index less than newIndex)
+    
+    // Find previous waypoint (closest integer index less than newIndex)
     // This handles cases where curve points exist
-    if (waypoints.length > 0) {
-      const sortedWaypoints = [...waypoints].sort((a, b) => b.index - a.index)
+    if (droneWaypoints.length > 0) {
+      const sortedWaypoints = [...droneWaypoints].sort((a, b) => b.index - a.index)
       const prevWaypoint = sortedWaypoints.find(wp => Math.floor(wp.index) < newIndex)
       
       if (prevWaypoint) {
@@ -236,7 +259,22 @@ export const WaypointProvider: React.FC<WaypointProviderProps> = ({ children }) 
       alert('Invalid trajectory data format')
       console.error('Import error:', error)
     }
+  }  // Multi-drone functions
+  const getWaypointsByDroneId = (droneId: string) => {
+    return waypoints.filter(wp => wp.droneId === droneId);
   }
+  
+  const clearDroneWaypoints = (droneId: string) => {
+    setWaypoints(prev => prev.filter(wp => wp.droneId !== droneId));
+    setSelectedWaypoint(null);
+  }
+  
+  const moveWaypointsToDrone = (waypointIds: string[], targetDroneId: string) => {
+    setWaypoints(prev => prev.map(wp => 
+      waypointIds.includes(wp.id) ? { ...wp, droneId: targetDroneId } : wp
+    ));
+  }
+  
   // Curve editing functions
   const startCurveEdit = (startId: string, endId: string) => {
     // Find the waypoints
@@ -350,9 +388,9 @@ export const WaypointProvider: React.FC<WaypointProviderProps> = ({ children }) 
       const pointNumber = idx + 1;
       const decimalPart = pointNumber < 10 ? `0${pointNumber}` : pointNumber;
       const displayIndex = `${baseIndex}.${decimalPart}`;
-      
-      return {
+        return {
         id: `waypoint-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${idx}`,
+        droneId: startWaypoint.droneId, // Use the same drone ID as the start waypoint
         index: fraction,
         name: `Curve Point ${idx + 1}`,
         position: point.clone(),
@@ -410,8 +448,7 @@ export const WaypointProvider: React.FC<WaypointProviderProps> = ({ children }) 
     
     // Exit curve edit mode
     cancelCurveEdit();
-  };
-  const value: WaypointContextType = {
+  };  const value: WaypointContextType = {
     waypoints,
     selectedWaypoint,
     isAddingWaypoint,
@@ -430,8 +467,11 @@ export const WaypointProvider: React.FC<WaypointProviderProps> = ({ children }) 
     toggleSnapToGrid,
     toggleCurveControls,
     clearAllWaypoints,
+    clearDroneWaypoints,
     exportTrajectory,
     importTrajectory,
+    getWaypointsByDroneId,
+    moveWaypointsToDrone,
     startCurveEdit,
     updateCurveControlPoints,
     cancelCurveEdit,

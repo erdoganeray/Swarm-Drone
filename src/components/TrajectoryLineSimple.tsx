@@ -2,13 +2,18 @@ import React, { useMemo } from 'react'
 import { Line } from '@react-three/drei'
 import * as THREE from 'three'
 import { Waypoint } from '../contexts/WaypointContext'
+import { useDrones } from '../contexts/DroneContext'
 
 interface TrajectoryLineProps {
   waypoints: Waypoint[]
+  droneColor?: string
 }
 
-const TrajectoryLineSimple: React.FC<TrajectoryLineProps> = ({ waypoints }) => {
+const TrajectoryLineSimple: React.FC<TrajectoryLineProps> = ({ waypoints, droneColor = '#00aaff' }) => {
   if (waypoints.length < 2) return null
+  
+  // Get drone information
+  const { getDroneById } = useDrones();
 
   const connectionElements = useMemo(() => {
     const elements: JSX.Element[] = []
@@ -35,12 +40,16 @@ const TrajectoryLineSimple: React.FC<TrajectoryLineProps> = ({ waypoints }) => {
         // Draw the line - use the Vector3 positions directly
         const pointA = waypoint.position.clone()
         const pointB = targetWaypoint.position.clone()
+          // Get the drone's color if available
+        const droneId = waypoint.droneId;
+        const drone = getDroneById(droneId);
+        const lineColor = drone?.color || droneColor;
         
         elements.push(
           <Line
             key={`line-${lineKey}`}
             points={[pointA, pointB]}
-            color="#00aaff"
+            color={lineColor}
             lineWidth={2}
             transparent
             opacity={0.7}
@@ -110,6 +119,10 @@ const TrajectoryLineSimple: React.FC<TrajectoryLineProps> = ({ waypoints }) => {
         } else {
           quaternion.setFromUnitVectors(up, arrowDirection)
         }
+          // Get the drone's color if available
+        const droneId = source.droneId;
+        const drone = getDroneById(droneId);
+        const arrowColor = drone?.color || '#ff6600';
         
         // Add the arrow cone
         elements.push(
@@ -119,7 +132,7 @@ const TrajectoryLineSimple: React.FC<TrajectoryLineProps> = ({ waypoints }) => {
             quaternion={quaternion}
           >
             <coneGeometry args={[0.1, 0.3, 8]} />
-            <meshBasicMaterial color="#ff6600" />
+            <meshBasicMaterial color={arrowColor} />
           </mesh>
         )
       }

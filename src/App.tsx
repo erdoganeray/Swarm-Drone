@@ -1,87 +1,113 @@
-import { Canvas } from '@react-three/fiber'
-import { useState } from 'react'
-import Scene3D from './components/Scene3D'
-import CurveEditorControls from './components/CurveEditorControls'
-import { useWaypoints } from './contexts/WaypointContext'
+import { Canvas } from '@react-three/fiber';
+import { useState } from 'react';
+import Scene3D from './components/Scene3D';
+import CurveEditorControls from './components/CurveEditorControls';
+import DronePanel from './components/DronePanel';
+import { useWaypoints } from './contexts/WaypointContext';
+import { useDrones } from './contexts/DroneContext';
 
-function App() {  const { 
+function App() {  
+  const { 
     toggleCurveControls, 
     showCurveControls,
-    clearAllWaypoints: contextClearAllWaypoints
-  } = useWaypoints()
+    clearAllWaypoints: contextClearAllWaypoints,
+    getWaypointsByDroneId
+  } = useWaypoints();  
+  const { selectedDroneId, drones } = useDrones();
   
-  const [selectedAltitude, setSelectedAltitude] = useState(2)
-  const [waypoints, setWaypoints] = useState<any[]>([])
-  const snapToGrid = true // Always enabled
-  const [waypointType, setWaypointType] = useState<'takeoff' | 'waypoint' | 'hover' | 'landing' | 'return'>('waypoint')
-  const [clearTrigger, setClearTrigger] = useState(false)
-    const handleWaypointTypeChange = (newType: 'takeoff' | 'waypoint' | 'hover' | 'landing' | 'return') => {
-    setWaypointType(newType)
+  const [selectedAltitude, setSelectedAltitude] = useState(2);
+  const [waypoints, setWaypoints] = useState<any[]>([]);
+  const snapToGrid = true; // Always enabled
+  const [waypointType, setWaypointType] = useState<'takeoff' | 'waypoint' | 'hover' | 'landing' | 'return'>('waypoint');
+  const [clearTrigger, setClearTrigger] = useState(false);
+  
+  const handleWaypointTypeChange = (newType: 'takeoff' | 'waypoint' | 'hover' | 'landing' | 'return') => {    setWaypointType(newType);
     // Return waypoint seçildiğinde, işlem tamamlandıktan sonra normal waypoint'e dön
     if (newType === 'return') {
       setTimeout(() => {
-        setWaypointType('waypoint')
-      }, 500) // 500ms bekle ki return işlemi tamamlansın
+        setWaypointType('waypoint');
+      }, 500); // 500ms bekle ki return işlemi tamamlansın
     }
-  }  // Scene3D'den gelen waypoint değişikliklerini yalnızca local state'e yansıtalım
+  };
+  
+  // Scene3D'den gelen waypoint değişikliklerini yalnızca local state'e yansıtalım
   // Context'i doğrudan kullanan Scene3D kendi güncelleme işlemlerini yapıyor
   const handleWaypointsChange = (newWaypoints: any[]) => {
-    setWaypoints(newWaypoints)
-  }
-    const exportTrajectoryCSV = () => {
-    if (waypoints.length === 0) {
-      alert('Waypoint bulunamadı!')
-      return
+    setWaypoints(newWaypoints);
+  };
+  
+  const exportTrajectoryCSV = () => {
+    // Only export the selected drone's waypoints
+    if (!selectedDroneId) {
+      alert('Önce bir drone seçmelisiniz!');
+      return;
     }
+    
+    const droneWaypoints = getWaypointsByDroneId(selectedDroneId);
+    
+    if (droneWaypoints.length === 0) {
+      alert('Seçili drone için waypoint bulunamadı!');
+      return;
+    }
+      // Find the drone for naming
+    const currentDrone = drones.find(d => d.id === selectedDroneId);
+    if (!currentDrone) return;
 
-    let csvContent = 'X,Y,Z\n'
-      // Export waypoints in their original order (no reversal needed)
-    waypoints.forEach((waypoint) => {
-      const [x, y, z] = waypoint.position
+    let csvContent = 'X,Y,Z\n';
+    // Export waypoints in their original order (no reversal needed)
+    droneWaypoints.forEach((waypoint) => {
+      const { x, y, z } = waypoint.position;
       // X and Z are ground coordinates, Y is height (positive value)
       // Format as float with 2 decimal places
-      const formattedX = Number(x).toFixed(2)
-      const formattedY = Number(-y).toFixed(2)
-      const formattedZ = Number(-z).toFixed(2)
-      csvContent += `${formattedX},${formattedZ},${formattedY}\n`
-    })
-    
-    // Check if the return functionality is active by checking if the last waypoint
+      const formattedX = Number(x).toFixed(2);
+      const formattedY = Number(-y).toFixed(2);
+      const formattedZ = Number(-z).toFixed(2);
+      csvContent += `${formattedX},${formattedZ},${formattedY}\n`;
+    });    // Check if the return functionality is active by checking if the last waypoint
     // has a connection to the first waypoint
-    const firstWaypoint = waypoints[0]
-    const lastWaypoint = waypoints[waypoints.length - 1]
+    const firstWaypoint = droneWaypoints[0];
+    const lastWaypoint = droneWaypoints[droneWaypoints.length - 1];
     
     // Always add the first waypoint at the end when return is clicked
     // This completes the loop back to the beginning
     if (lastWaypoint && firstWaypoint && 
         lastWaypoint.connections.includes(firstWaypoint.index)) {
-      const [x, y, z] = firstWaypoint.position
+      const { x, y, z } = firstWaypoint.position;
       // Format as float with 2 decimal places for the return point as well
-      const formattedX = Number(x).toFixed(2)
-      const formattedY = Number(y).toFixed(2)
-      const formattedZ = Number(z).toFixed(2)
-      csvContent += `${formattedX},${formattedZ},${formattedY}\n`
-    }
-
-    const blob = new Blob([csvContent], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `trajectory_${new Date().toISOString().split('T')[0]}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-  }    // Clear all waypoints function
-  const clearAllWaypoints = () => {
-    if (waypoints.length === 0) return
+      const formattedX = Number(x).toFixed(2);
+      const formattedY = Number(-y).toFixed(2);
+      const formattedZ = Number(-z).toFixed(2);
+      csvContent += `${formattedX},${formattedZ},${formattedY}\n`;
+    }    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `trajectory_${currentDrone.name}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  
+  // Clear all waypoints function
+  const clearAllWaypoints = () => {    if (waypoints.length === 0) return;
     if (confirm('Tüm waypoint\'leri silmek istediğinizden emin misiniz?')) {
-      setWaypoints([])
-      setClearTrigger(prev => !prev) // Scene3D'ye clear sinyali gönder
-      contextClearAllWaypoints() // Context'teki waypoint'leri de temizleyelim
+      setWaypoints([]);
+      setClearTrigger(prev => !prev); // Scene3D'ye clear sinyali gönder
+      contextClearAllWaypoints(); // Context'teki waypoint'leri de temizleyelim
     }
-  }
+  };
   
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
+      {/* Drone Management Panel - Top Right */}
+      <div style={{
+        position: 'absolute',
+        top: '20px',
+        right: '20px',
+        zIndex: 1000
+      }}>
+        <DronePanel />
+      </div>
+      
       {/* Advanced Control Panel */}
       <div style={{
         position: 'absolute',
@@ -266,8 +292,7 @@ function App() {  const {
               }, 0).toFixed(1)}m
             </strong></div>
           )}
-        </div>    </div>
-      {/* Curve Editor Controls */}
+        </div>    </div>      {/* Curve Editor Controls */}
       <CurveEditorControls />
       
       <Canvas
@@ -275,7 +300,8 @@ function App() {  const {
           position: [10, 10, 10],
           fov: 50,
         }}
-      >        <Scene3D 
+      >
+        <Scene3D
           selectedAltitude={selectedAltitude} 
           onWaypointsChange={handleWaypointsChange}
           snapToGrid={snapToGrid}
@@ -284,7 +310,7 @@ function App() {  const {
         />
       </Canvas>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
