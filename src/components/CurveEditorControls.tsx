@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useWaypoints } from '../contexts/WaypointContext'
+import { useGUIManager } from './GUIManager'
 
 const CurveEditorControls: React.FC = () => {
   const { 
@@ -11,10 +12,12 @@ const CurveEditorControls: React.FC = () => {
     showCurveControls
   } = useWaypoints()
   
+  const { isPanelVisible } = useGUIManager();
   const [targetWaypointId, setTargetWaypointId] = useState<string | null>(null)
   
   // If we're already in curve edit mode, don't show the controls
-  if (curveEditMode.active || !showCurveControls) return null
+  // Also don't show if the panel is hidden or curve controls are disabled
+  if (curveEditMode.active || !showCurveControls || !isPanelVisible('curve-editor')) return null
   
   // Function to check if two waypoints are connected
   const areWaypointsConnected = (wp1Id: string, wp2Id: string) => {

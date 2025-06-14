@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useDrones } from '../contexts/DroneContext'
 import { useWaypoints } from '../contexts/WaypointContext'
+import { useGUIManager } from './GUIManager'
 import './DronePanel.css'
 
 // Helper function to check if File System Access API is supported
@@ -8,7 +9,13 @@ const isFileSystemAccessSupported = (): boolean => {
   return 'showDirectoryPicker' in window;
 }
 
-const DronePanel: React.FC = () => {  const {
+const DronePanel: React.FC = () => {
+  const { isPanelVisible } = useGUIManager();
+  
+  // Don't render if the panel is not visible
+  if (!isPanelVisible('drone-panel')) return null;
+  
+  const {
     drones,
     selectedDroneId,
     addDrone,
