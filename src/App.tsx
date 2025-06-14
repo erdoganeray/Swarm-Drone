@@ -4,16 +4,12 @@ import Scene3D from './components/Scene3D';
 import CurveEditorControls from './components/CurveEditorControls';
 import DronePanel from './components/DronePanel';
 import { useWaypoints } from './contexts/WaypointContext';
-import { useDrones } from './contexts/DroneContext';
 
-function App() {  
-  const { 
+function App() {    const { 
     toggleCurveControls, 
     showCurveControls,
-    clearAllWaypoints: contextClearAllWaypoints,
-    getWaypointsByDroneId
-  } = useWaypoints();  
-  const { selectedDroneId, drones } = useDrones();
+    clearAllWaypoints: contextClearAllWaypoints
+  } = useWaypoints();
   
   const [selectedAltitude, setSelectedAltitude] = useState(2);
   const [waypoints, setWaypoints] = useState<any[]>([]);
@@ -35,59 +31,7 @@ function App() {
   const handleWaypointsChange = (newWaypoints: any[]) => {
     setWaypoints(newWaypoints);
   };
-  
-  const exportTrajectoryCSV = () => {
-    // Only export the selected drone's waypoints
-    if (!selectedDroneId) {
-      alert('Önce bir drone seçmelisiniz!');
-      return;
-    }
-    
-    const droneWaypoints = getWaypointsByDroneId(selectedDroneId);
-    
-    if (droneWaypoints.length === 0) {
-      alert('Seçili drone için waypoint bulunamadı!');
-      return;
-    }
-      // Find the drone for naming
-    const currentDrone = drones.find(d => d.id === selectedDroneId);
-    if (!currentDrone) return;
-
-    let csvContent = 'X,Y,Z\n';
-    // Export waypoints in their original order (no reversal needed)
-    droneWaypoints.forEach((waypoint) => {
-      const { x, y, z } = waypoint.position;
-      // X and Z are ground coordinates, Y is height (positive value)
-      // Format as float with 2 decimal places
-      const formattedX = Number(x).toFixed(2);
-      const formattedY = Number(-y).toFixed(2);
-      const formattedZ = Number(-z).toFixed(2);
-      csvContent += `${formattedX},${formattedZ},${formattedY}\n`;
-    });    // Check if the return functionality is active by checking if the last waypoint
-    // has a connection to the first waypoint
-    const firstWaypoint = droneWaypoints[0];
-    const lastWaypoint = droneWaypoints[droneWaypoints.length - 1];
-    
-    // Always add the first waypoint at the end when return is clicked
-    // This completes the loop back to the beginning
-    if (lastWaypoint && firstWaypoint && 
-        lastWaypoint.connections.includes(firstWaypoint.index)) {
-      const { x, y, z } = firstWaypoint.position;
-      // Format as float with 2 decimal places for the return point as well
-      const formattedX = Number(x).toFixed(2);
-      const formattedY = Number(-y).toFixed(2);
-      const formattedZ = Number(-z).toFixed(2);
-      csvContent += `${formattedX},${formattedZ},${formattedY}\n`;
-    }    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `trajectory_${currentDrone.name}_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-  
-  // Clear all waypoints function
+    // Clear all waypoints function
   const clearAllWaypoints = () => {    if (waypoints.length === 0) return;
     if (confirm('Tüm waypoint\'leri silmek istediğinizden emin misiniz?')) {
       setWaypoints([]);
@@ -201,25 +145,9 @@ function App() {
           </div>
         </div>
           {/* Actions */}
-        <div style={{ marginBottom: '15px' }}>
-          <div style={{ fontSize: '14px', marginBottom: '8px', fontWeight: 'bold' }}>⚡ İşlemler:</div>
+        <div style={{ marginBottom: '15px' }}>          <div style={{ fontSize: '14px', marginBottom: '8px', fontWeight: 'bold' }}>⚡ İşlemler:</div>
           <div style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
             <button
-              onClick={exportTrajectoryCSV}
-              disabled={waypoints.length === 0}
-              style={{
-                padding: '8px 12px',
-                border: 'none',
-                borderRadius: '8px',
-                background: waypoints.length > 0 ? '#4CAF50' : '#555',
-                color: 'white',
-                cursor: waypoints.length > 0 ? 'pointer' : 'not-allowed',
-                fontSize: '12px',
-                fontWeight: 'bold'
-              }}
-            >
-              📊 CSV Export (X,Y,Z)
-            </button>            <button
               onClick={clearAllWaypoints}
               disabled={waypoints.length === 0}
               style={{

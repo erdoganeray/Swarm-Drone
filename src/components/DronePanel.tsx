@@ -3,6 +3,11 @@ import { useDrones } from '../contexts/DroneContext'
 import { useWaypoints } from '../contexts/WaypointContext'
 import './DronePanel.css'
 
+// Helper function to check if File System Access API is supported
+const isFileSystemAccessSupported = (): boolean => {
+  return 'showDirectoryPicker' in window;
+}
+
 const DronePanel: React.FC = () => {  const {
     drones,
     selectedDroneId,
@@ -15,8 +20,7 @@ const DronePanel: React.FC = () => {  const {
   
   const { getWaypointsByDroneId, clearDroneWaypoints } = useWaypoints();
   const [showColorPicker, setShowColorPicker] = useState<string | null>(null);
-  
-  const handleExportCSV = (droneId: string) => {
+  const handleExportCSV = async (droneId: string) => {
     const drone = drones.find(d => d.id === droneId);
     if (!drone) return;
     
@@ -53,22 +57,105 @@ const DronePanel: React.FC = () => {  const {
     }
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
+    const fileName = `${drone.name}.csv`;
+    
+    if (isFileSystemAccessSupported()) {
+      try {
+        // Use the File System Access API to save to local filesystem
+        const dirHandle = await window.showDirectoryPicker({
+          id: 'waypoints-directory',
+          startIn: 'documents',
+          mode: 'readwrite',
+          suggestedName: 'waypoints'
+        });
+        
+        const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
+        const writable = await fileHandle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        
+        alert(`${fileName} başarıyla kaydedildi!`);
+        return;
+      } catch (err) {
+        console.error('Dosya sistemi erişimi hatası, indirme yöntemine geçiliyor:', err);
+      }
+    }
+    
+    // Fall back to the download method if the File System API fails or is unsupported
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `trajectory_${drone.name}_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    a.download = fileName;
+    a.click();    URL.revokeObjectURL(url);
   }
-
-  const handleExportAllCSV = () => {
+  
+  const handleExportAllCSV = async () => {
     if (drones.length === 0) return;
     
-    // Create a ZIP file with all drone trajectories
     alert('Tüm drone verilerini CSV olarak dışa aktarılıyor...');
     
-    // For each visible drone, create a csv file
+    if (isFileSystemAccessSupported()) {
+      try {
+        // Request directory access once for all files
+        const dirHandle = await window.showDirectoryPicker({
+          id: 'waypoints-directory',
+          startIn: 'documents',
+          mode: 'readwrite',
+          suggestedName: 'waypoints'
+        });
+        
+        // For each visible drone, create a csv file in the selected directory
+        for (const drone of drones.filter(d => d.isVisible)) {
+          const droneWaypoints = getWaypointsByDroneId(drone.id);
+          if (droneWaypoints.length === 0) continue;
+          
+          let csvContent = 'X,Y,Z\n';
+          
+          // Export waypoints in their original order
+          droneWaypoints.forEach((waypoint) => {
+            const { x, y, z } = waypoint.position;
+            const formattedX = Number(x).toFixed(2);
+            const formattedY = Number(-y).toFixed(2);
+            const formattedZ = Number(-z).toFixed(2);
+            csvContent += `${formattedX},${formattedZ},${formattedY}\n`;
+          });
+          
+          // Check if the return functionality is active
+          if (droneWaypoints.length >= 2) {
+            const firstWaypoint = droneWaypoints[0];
+            const lastWaypoint = droneWaypoints[droneWaypoints.length - 1];
+            
+            if (lastWaypoint.connections.includes(firstWaypoint.index)) {
+              const { x, y, z } = firstWaypoint.position;
+              const formattedX = Number(x).toFixed(2);
+              const formattedY = Number(-y).toFixed(2);
+              const formattedZ = Number(-z).toFixed(2);
+              csvContent += `${formattedX},${formattedZ},${formattedY}\n`;
+            }
+          }
+          
+          const fileName = `${drone.name}.csv`;
+          const blob = new Blob([csvContent], { type: 'text/csv' });
+          
+          // Save the file to the selected directory
+          const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
+          const writable = await fileHandle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+        }
+        
+        alert('Tüm drone verileri başarıyla kaydedildi!');
+        return;
+      } catch (err) {
+        console.error('Dosya sistemi erişimi hatası:', err);
+        // Fall back to individual downloads
+      }
+    }
+    
+    // Fall back to individual downloads if the File System API fails or is unsupported
+    alert('Dosya sistemi erişimi başarısız veya desteklenmiyor, dosyalar ayrı ayrı indirilecek.');
     drones.filter(d => d.isVisible).forEach(drone => {
+      // Call the original handleExportCSV which will handle the fallback download
       handleExportCSV(drone.id);
     });
   }
