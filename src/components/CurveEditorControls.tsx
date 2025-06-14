@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useWaypoints } from '../contexts/WaypointContext'
 import { useGUIManager } from './GUIManager'
+import { useDrones } from '../contexts/DroneContext'
 
 const CurveEditorControls: React.FC = () => {
   const { 
@@ -9,15 +10,20 @@ const CurveEditorControls: React.FC = () => {
     selectWaypoint,
     startCurveEdit,
     curveEditMode,
-    showCurveControls
+    showCurveControls,
+    getWaypointsByDroneId
   } = useWaypoints()
   
   const { isPanelVisible } = useGUIManager();
+  const { selectedDroneId } = useDrones();
   const [targetWaypointId, setTargetWaypointId] = useState<string | null>(null)
   
   // If we're already in curve edit mode, don't show the controls
   // Also don't show if the panel is hidden or curve controls are disabled
   if (curveEditMode.active || !showCurveControls || !isPanelVisible('curve-editor')) return null
+  
+  // Get only waypoints for the selected drone
+  const droneWaypoints = selectedDroneId ? getWaypointsByDroneId(selectedDroneId) : [];
   
   // Function to check if two waypoints are connected
   const areWaypointsConnected = (wp1Id: string, wp2Id: string) => {
@@ -32,7 +38,7 @@ const CurveEditorControls: React.FC = () => {
   
   // Get the connected waypoints to the selected waypoint
   const connectedWaypoints = selectedWaypoint 
-    ? waypoints.filter(wp => 
+    ? droneWaypoints.filter(wp => 
         wp.id !== selectedWaypoint && 
         areWaypointsConnected(wp.id, selectedWaypoint)
       )
@@ -49,13 +55,7 @@ const CurveEditorControls: React.FC = () => {
   const handleSelectSourceWaypoint = (id: string) => {
     selectWaypoint(id)
     setTargetWaypointId(null)
-  }  // Uncomment for debugging when needed
-  // console.log("CurveEditorControls Render: ", { 
-  //   waypoints: waypoints.map(wp => ({ id: wp.id, index: wp.index, name: wp.name })), 
-  //   selectedWaypoint, 
-  //   showCurveControls,
-  //   curveEditMode
-  // });
+  }  
 
   return (
     <div style={{
@@ -70,7 +70,7 @@ const CurveEditorControls: React.FC = () => {
       width: '250px'
     }}>
       <h3 style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#ffaa00' }}>
-        🔄 Yol Düzenleme ({waypoints.length} Waypoint)
+        🔄 Yol Düzenleme ({droneWaypoints.length} Waypoint)
       </h3>
 
       <div style={{ marginBottom: '15px' }}>
@@ -90,7 +90,7 @@ const CurveEditorControls: React.FC = () => {
           }}
         >
           <option value="">Waypoint Seçin</option>
-          {waypoints.map(wp => (
+          {droneWaypoints.map(wp => (
             <option key={wp.id} value={wp.id}>
               {wp.index}. {wp.name || wp.type} ({wp.position.x.toFixed(1)}, {wp.position.y.toFixed(1)}, {wp.position.z.toFixed(1)})
             </option>
